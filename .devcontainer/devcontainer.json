@@ -1,0 +1,22 @@
+{
+	"build": {
+		"dockerfile": "Dockerfile",
+	},
+	"mounts": [
+		"source=tacodns-docker,target=/var/lib/docker,type=volume",
+	],
+	"runArgs": [
+		"--init",
+		"--privileged",
+	],
+	"overrideCommand": false,
+	"extensions": [
+		// Rust
+		"rust-lang.rust",
+		"panicbit.cargo",
+		"serayuzgur.crates",
+		"tamasfe.even-better-toml",
+
+		"hediet.vscode-drawio",
+	],
+}
