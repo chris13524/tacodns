@@ -4,5 +4,12 @@ services:
   nginx:
     build:
       context: nginx
+
+  tacodns-adapter:
+    build:
+      context: ../../adapter
+    environment:
+      HTTP_ENDPOINT: http://nginx
     ports:
-      - "80:80"
+      - "53:53/tcp"
+      - "53:53/udp"
