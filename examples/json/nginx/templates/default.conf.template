@@ -1,0 +1,8 @@
+server {
+    listen 80;
+    
+    location / {
+        root /zones;
+        index index.json;
+    }
+}
