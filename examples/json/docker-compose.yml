@@ -4,6 +4,8 @@ services:
   nginx:
     build:
       context: nginx
+    volumes:
+      - ./zones:/zones
 
   tacodns-adapter:
     build:
