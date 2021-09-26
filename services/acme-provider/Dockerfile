@@ -16,11 +16,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry/cache/ \
     --mount=type=cache,target=/usr/local/cargo/registry/index/ \
     --mount=type=cache,target=/usr/local/cargo/git/db/ \
     --mount=type=cache,target=./target/ \
-    cargo install --target x86_64-unknown-linux-musl --path . --locked
+    cargo install --target x86_64-unknown-linux-musl --path .
 
 FROM scratch
 COPY --from=dumb-init /usr/local/bin/dumb-init /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/dumb-init"]
-COPY --from=builder /usr/local/cargo/bin/tacodns-adapter /usr/local/bin/
-CMD ["/usr/local/bin/tacodns-adapter"]
-ENV RUST_LOG=tacodns_adapter
+COPY --from=builder /usr/local/cargo/bin/acme-provider /usr/local/bin/
+CMD ["/usr/local/bin/acme-provider"]
+ENV RUST_LOG=acme_provider
+ENV ROCKET_ADDRESS=0.0.0.0
+ENV ROCKET_PORT=80
