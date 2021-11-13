@@ -3,7 +3,7 @@ services:
 
   dynamicdns-provider:
     build:
-      context: ../../services/dynamicdns-provider
+      context: ../../providers/dynamicdns
     ports:
       - "8000:80"
 
