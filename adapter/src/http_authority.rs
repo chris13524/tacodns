@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use trust_dns_client::op::{LowerQuery, ResponseCode};
 use trust_dns_client::rr::dnssec::{DnsSecResult, Signer, SupportedAlgorithms};
-use trust_dns_client::rr::rdata::key::KEY;
+use trust_dns_client::rr::rdata::{key::KEY, TXT};
 use trust_dns_client::rr::{LowerName, Name, RData, Record, RecordSet, RecordType};
 use trust_dns_server::authority::{
     AuthLookup, Authority, LookupError, LookupRecords, MessageRequest, UpdateResult, ZoneType,
@@ -127,6 +127,7 @@ async fn lookup_impl(
 
         let record_type = match record_type {
             RecordType::A => "A",
+            RecordType::TXT => "TXT",
             _ => return Err(anyhow!("RecordType::{:?} not implemented", record_type)),
         };
         endpoint = endpoint.join(&format!("{}/", record_type))?;
@@ -135,7 +136,11 @@ async fn lookup_impl(
     };
     debug!("endpoint: {}", endpoint);
 
-    let records: Vec<String> = reqwest::get(endpoint).await?.json().await?;
+    let response = reqwest::get(endpoint).await?;
+    if response.status() == 404 {
+        return Err(anyhow!("Error getting response: {}", response.text().await?));
+    }
+    let records: Vec<String> = response.json().await?;
     debug!("records: {:?}", records);
 
     Ok({
@@ -143,7 +148,11 @@ async fn lookup_impl(
         let serial = 1;
         let mut record_set = RecordSet::new(&name, record_type, serial);
         for record in records {
-            let rdata = RData::A(record.parse()?);
+            let rdata = match record_type {
+                RecordType::A => RData::A(record.parse()?),
+                RecordType::TXT => RData::TXT(TXT::new(vec![record])),
+                _ => return Err(anyhow!("RecordType::{:?} not implemented", record_type)),
+            };
             record_set.insert(Record::from_rdata(name.clone(), ttl, rdata), serial);
         }
         record_set
