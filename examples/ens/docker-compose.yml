@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+
+  ens-provider:
+    build:
+      context: ../../services/ens-provider
+
+  tacodns-adapter:
+    build:
+      context: ../../adapter
+    environment:
+      HTTP_ENDPOINT: http://ens-provider:3000
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
