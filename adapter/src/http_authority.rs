@@ -5,11 +5,13 @@ use reqwest::{IntoUrl, Url};
 use futures_util::future;
 use std::future::Future;
 use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use trust_dns_client::op::{LowerQuery, ResponseCode};
 use trust_dns_client::rr::dnssec::{DnsSecResult, Signer, SupportedAlgorithms};
-use trust_dns_client::rr::rdata::{key::KEY, TXT};
+use trust_dns_client::rr::rdata::{key::KEY, SOA, TXT};
 use trust_dns_client::rr::{LowerName, Name, RData, Record, RecordSet, RecordType};
 use trust_dns_server::authority::{
     AuthLookup, Authority, LookupError, LookupRecords, MessageRequest, UpdateResult, ZoneType,
@@ -57,13 +59,14 @@ impl Authority for HttpAuthority {
         supported_algorithms: SupportedAlgorithms,
     ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
         let http_endpoint = self.http_endpoint.clone();
+        let origin: Name = self.origin().into();
         let name = name.clone();
         Box::pin(async move {
-            lookup_impl(http_endpoint, &name, record_type)
+            lookup_impl(http_endpoint, &origin, &name, record_type)
                 .await
                 .map_err(|e| {
-                    error!("{}", e);
-                    LookupError::ResponseCode(ResponseCode::ServFail)
+                    error!("Error in lookup_impl: {}", e);
+                    LookupError::NameExists
                 })
                 .map(|record_set| {
                     AuthLookup::answers(
@@ -112,6 +115,7 @@ impl Authority for HttpAuthority {
 
 async fn lookup_impl(
     http_endpoint: Url,
+    origin: &Name,
     name: &LowerName,
     record_type: RecordType,
 ) -> Result<RecordSet> {
@@ -125,36 +129,57 @@ async fn lookup_impl(
             endpoint = endpoint.join(&format!("{}/", label))?;
         }
 
-        let record_type = match record_type {
-            RecordType::A => "A",
-            RecordType::TXT => "TXT",
-            _ => return Err(anyhow!("RecordType::{:?} not implemented", record_type)),
-        };
         endpoint = endpoint.join(&format!("{}/", record_type))?;
 
         endpoint
     };
     debug!("endpoint: {}", endpoint);
 
-    let response = reqwest::get(endpoint).await?;
-    if response.status() == 404 {
-        return Err(anyhow!("Error getting response: {}", response.text().await?));
+    let ttl = 60;
+    let serial = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u32;
+    if record_type == RecordType::SOA {
+        let mut record_set = RecordSet::new(origin, record_type, serial);
+        record_set.insert(
+            Record::from_rdata(
+                origin.clone(),
+                ttl,
+                RData::SOA(SOA::new(
+                    Name::from_str("ns")?.append_domain(origin),
+                    Name::from_str("hostmaster")?.append_domain(origin),
+                    serial,
+                    86400,
+                    7200,
+                    3600000,
+                    15,
+                )),
+            ),
+            serial,
+        );
+        return Ok(record_set);
     }
-    let records: Vec<String> = response.json().await?;
+
+    let response = reqwest::get(endpoint).await?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(anyhow!(
+            "Got {}. response.text() == {:?}",
+            response.status(),
+            response.text().await?
+        ));
+    }
+    let records = response.json::<Vec<String>>().await?;
     debug!("records: {:?}", records);
 
-    Ok({
-        let ttl = 1800;
-        let serial = 1;
-        let mut record_set = RecordSet::new(&name, record_type, serial);
-        for record in records {
-            let rdata = match record_type {
-                RecordType::A => RData::A(record.parse()?),
-                RecordType::TXT => RData::TXT(TXT::new(vec![record])),
-                _ => return Err(anyhow!("RecordType::{:?} not implemented", record_type)),
-            };
-            record_set.insert(Record::from_rdata(name.clone(), ttl, rdata), serial);
-        }
-        record_set
-    })
+    let mut record_set = RecordSet::new(&name, record_type, serial);
+    for record in records {
+        let rdata = match record_type {
+            RecordType::A => RData::A(record.parse()?),
+            RecordType::TXT => RData::TXT(TXT::new(vec![record])),
+            RecordType::NS => RData::NS(record.parse()?),
+            RecordType::SOA => panic!("should never happen"),
+            _ => return Err(anyhow!("RecordType::{:?} not implemented:", record_type)),
+        };
+        record_set.insert(Record::from_rdata(name.clone(), ttl, rdata), serial);
+    }
+    Ok(record_set)
 }
