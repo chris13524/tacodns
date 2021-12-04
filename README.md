@@ -43,6 +43,10 @@ TacoDNS only supports a subset of DNS functionality and does not support:
 
 ## Use cases
 
+### Simplified authoritative DNS server implementation
+
+Easily implement an authoritative DNS server that solves the needs of your specific DNS scenario.
+
 ### Flexible DNS zones
 
 Typical DNS servers require the zone to be static as it is considered a kind of distributed database. While this is how DNS was designed, it prevents servers from responding dynamically to requests. It also introduces the synchronization problem where your application code must keep the DNS server in-sync with your application.
@@ -56,6 +60,16 @@ Typical DNS solutions are centralized to a single DNS server. This means that yo
 TacoDNS flips the architecture around and allows you to delegate certain zones or record types out to external providers. This works similar to NS DNS records, but those only work for separate zones and not for different record types. With TacoDNS, you could, for example, delegate your A records for `example.com` to point to GitHub pages while MX records point to Gmail.
 
 Services that integrate with DNS can begin to support their own TacoDNS HTTP endpoints, simplifying integration.
+
+### Proxy authoritative DNS servers
+
+Typically if an authoritative DNS server wants to delegate control to another DNS server (making it authoritative), you would use an `NS` record. This has the limitation that the entire zone must be forwarded to the other server, preventing delegation of specific record types and introduces additional steps for a recursive DNS server, slowing down resolution.
+
+By DNS servers proxying requests to another DNS server, only certain record types can be forwarded to the other server, increasing naming flexibility.
+
+### Point-to-point-based security
+
+Unlike DNSSEC that uses zone signing to authenticate the contents of the DNS response, the DNS server itself is authenticated at the transport level and is automatically trusted. This simplifies integration, but can still sign records using DNSSEC for increased security.
 
 ## Features
 

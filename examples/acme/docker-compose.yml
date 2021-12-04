@@ -1,0 +1,57 @@
+version: "3"
+services:
+
+  acme-provider:
+    build:
+      context: ../../providers/acme
+    environment:
+      RUST_LOG: trace
+
+  ingress:
+    build:
+      context: ingress
+    volumes:
+      - ./zones:/zones
+
+  tacodns-adapter:
+    build:
+      context: ../../adapter
+    environment:
+      HTTP_ENDPOINT: http://ingress
+      ORIGIN: whoami.glowstick.io
+    ports:
+      - "159.223.166.42:53:53/tcp"
+      - "159.223.166.42:53:53/udp"
+      - "2604:a880:400:d0::1c60:6001:53:53/tcp"
+      - "2604:a880:400:d0::1c60:6001:53:53/udp"
+
+  traefik:
+    image: traefik:2.5.4
+    restart: always
+    command:
+      - "--log.level=TRACE"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=tacodns_default"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.default.acme.dnschallenge.provider=httpreq"
+      - "--certificatesresolvers.default.acme.storage=/acme/acme.json"
+      #- "--certificatesResolvers.default.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/traefik/acme/:/acme/
+    ports:
+      - "443:443"
+    dns: 1.1.1.1
+    environment:
+      HTTPREQ_ENDPOINT: http://acme-provider
+      HTTPREQ_USERNAME: user
+      HTTPREQ_PASSWORD: pass
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.glowstick.io`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certResolver=default"
