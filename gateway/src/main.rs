@@ -1,20 +1,17 @@
+mod authority;
+mod http;
 mod options;
-use options::Options;
-
-mod http_authority;
-use http_authority::HttpAuthority;
 
 use anyhow::Result;
+use authority::HttpAuthority;
 use clap::Clap;
 use log::*;
-
+use options::Options;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-
 use tokio::net::TcpListener;
 use tokio::net::UdpSocket;
 use tokio::task;
-
 use trust_dns_server::authority::{Authority, Catalog};
 use trust_dns_server::server::ServerFuture;
 
