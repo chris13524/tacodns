@@ -15,7 +15,7 @@ services:
     build:
       context: ../../gateway
     environment:
-      HTTP_ENDPOINT: http://ingress
+      ENDPOINT: http://ingress
     ports:
       - "53:53/tcp"
       - "53:53/udp"

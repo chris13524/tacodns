@@ -17,13 +17,13 @@ fn map_record(record_type: RecordType, record: String) -> Result<RData> {
 }
 
 pub async fn lookup(
-    http_endpoint: Url,
+    endpoint: Url,
     origin: &Name,
     name: &Name,
     record_type: RecordType,
 ) -> Result<RecordSet> {
     let endpoint = {
-        let mut endpoint = http_endpoint;
+        let mut endpoint = endpoint;
 
         for label in name.iter().rev() {
             let label = std::str::from_utf8(label)?;

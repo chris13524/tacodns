@@ -11,7 +11,7 @@ services:
     build:
       context: ../../gateway
     environment:
-      HTTP_ENDPOINT: http://nginx
+      ENDPOINT: http://nginx
     ports:
       - "53:53/tcp"
       - "53:53/udp"

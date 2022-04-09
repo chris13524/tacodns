@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     let options = Options::parse();
     info!("options: {:?}", options);
 
-    let authority = HttpAuthority::new(options.origin, options.http_endpoint)?;
+    let authority = HttpAuthority::new(options.origin, options.endpoint)?;
 
     let catalog = {
         let mut catalog = Catalog::new();

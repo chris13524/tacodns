@@ -15,14 +15,14 @@ use trust_dns_server::authority::{
 
 pub struct HttpAuthority {
     origin: LowerName,
-    http_endpoint: Url,
+    endpoint: Url,
 }
 
 impl HttpAuthority {
-    pub fn new<U: IntoUrl>(origin: String, http_endpoint: U) -> Result<HttpAuthority> {
+    pub fn new<U: IntoUrl>(origin: String, endpoint: U) -> Result<HttpAuthority> {
         Ok(HttpAuthority {
             origin: LowerName::from(Name::from_ascii(origin)?),
-            http_endpoint: http_endpoint.into_url()?,
+            endpoint: endpoint.into_url()?,
         })
     }
 }
@@ -54,11 +54,11 @@ impl Authority for HttpAuthority {
         is_secure: bool,
         supported_algorithms: SupportedAlgorithms,
     ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
-        let http_endpoint = self.http_endpoint.clone();
+        let endpoint = self.endpoint.clone();
         let origin: Name = self.origin().into();
         let name: Name = name.clone().into();
         Box::pin(async move {
-            crate::http::lookup(http_endpoint, &origin, &name, record_type)
+            crate::http::lookup(endpoint, &origin, &name, record_type)
                 .await
                 .map_err(|e| {
                     error!("Error in lookup_impl: {}", e);

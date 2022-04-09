@@ -14,5 +14,5 @@ pub struct Options {
 
     /// HTTP endpoint to adapt to.
     #[clap(long, env)]
-    pub http_endpoint: String,
+    pub endpoint: String,
 }
