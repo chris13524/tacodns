@@ -15,9 +15,6 @@ use tokio::task;
 use trust_dns_server::authority::{Authority, Catalog};
 use trust_dns_server::server::ServerFuture;
 
-// TODO support DNS-over-HTTPS
-// TODO support DNSSEC
-
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
