@@ -56,7 +56,7 @@ impl Authority for HttpAuthority {
     ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
         let http_endpoint = self.http_endpoint.clone();
         let origin: Name = self.origin().into();
-        let name = name.clone();
+        let name: Name = name.clone().into();
         Box::pin(async move {
             crate::http::lookup(http_endpoint, &origin, &name, record_type)
                 .await

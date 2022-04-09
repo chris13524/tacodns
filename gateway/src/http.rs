@@ -4,7 +4,7 @@ use reqwest::Url;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use trust_dns_client::rr::rdata::{SOA, TXT};
-use trust_dns_client::rr::{LowerName, Name, RData, Record, RecordSet, RecordType};
+use trust_dns_client::rr::{Name, RData, Record, RecordSet, RecordType};
 
 fn map_record(record_type: RecordType, record: String) -> Result<RData> {
     Ok(match record_type {
@@ -19,11 +19,9 @@ fn map_record(record_type: RecordType, record: String) -> Result<RData> {
 pub async fn lookup(
     http_endpoint: Url,
     origin: &Name,
-    name: &LowerName,
+    name: &Name,
     record_type: RecordType,
 ) -> Result<RecordSet> {
-    let name: Name = name.into();
-
     let endpoint = {
         let mut endpoint = http_endpoint;
 
