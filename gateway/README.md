@@ -1,8 +1,8 @@
-# TacoDNS adapter
+# TacoDNS gateway
 
-The TacoDNS adapter implements the conversion from the wire DNS protocol into an easy-to-use HTTP request/response pair.
+The TacoDNS gateway implements the conversion from the wire DNS protocol into an easy-to-use HTTP request/response pair.
 
-The adapter leverages the [TrustDNS](https://github.com/bluejekyll/trust-dns) library.
+The gateway leverages the [TrustDNS](https://github.com/bluejekyll/trust-dns) library.
 
 ## Usage
 
@@ -18,7 +18,7 @@ For example, a request for an `A` record on `example.com` would look like `GET /
 
 ## HTTP response format
 
-The HTTP response is a JSON-formatted payload of an array of records. It supports three formats, text, simple, and full. The TacoDNS adapter will infer the format based on the response payload.
+The HTTP response is a JSON-formatted payload of an array of records. It supports three formats, text, simple, and full. The TacoDNS gateway will infer the format based on the response payload.
 
 For example, consider this request: `GET /com/example/A/`
 

@@ -16,13 +16,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry/cache/ \
     --mount=type=cache,target=/usr/local/cargo/registry/index/ \
     --mount=type=cache,target=/usr/local/cargo/git/db/ \
     --mount=type=cache,target=./target/ \
-    cargo install --target x86_64-unknown-linux-musl --path .
+    cargo install --target x86_64-unknown-linux-musl --path . --locked
 
 FROM scratch
 COPY --from=dumb-init /usr/local/bin/dumb-init /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/dumb-init"]
-COPY --from=builder /usr/local/cargo/bin/dynamicdns-provider /usr/local/bin/
-CMD ["/usr/local/bin/dynamicdns-provider"]
-ENV RUST_LOG=dynamicdns_provider
-ENV ROCKET_ADDRESS=0.0.0.0
-ENV ROCKET_PORT=80
+COPY --from=builder /usr/local/cargo/bin/tacodns-gateway /usr/local/bin/
+CMD ["/usr/local/bin/tacodns-gateway"]
+ENV RUST_LOG=tacodns_gateway

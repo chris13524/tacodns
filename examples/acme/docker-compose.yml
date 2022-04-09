@@ -13,9 +13,9 @@ services:
     volumes:
       - ./zones:/zones
 
-  tacodns-adapter:
+  tacodns-gateway:
     build:
-      context: ../../adapter
+      context: ../../gateway
     environment:
       HTTP_ENDPOINT: http://ingress
       ORIGIN: whoami.glowstick.io

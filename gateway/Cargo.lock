@@ -951,7 +951,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tacodns-adapter"
+name = "tacodns-gateway"
 version = "0.1.0"
 dependencies = [
  "anyhow",

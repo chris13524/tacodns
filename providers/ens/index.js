@@ -1,13 +1,13 @@
 const express = require('express');
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 8080;
 
 const { ethers } = require("ethers");
 const rpcAddress = "https://mainnet.infura.io/v3/f1793583b9264c7c82fc44892e9e1c46";
 const provider = new ethers.providers.JsonRpcProvider(rpcAddress);
 
 // listen for all domain and record pairs
-app.use('/', async (req, res) => { // e.g. /com/example/A/
+app.get('/', async (req, res) => { // e.g. /com/example/A/
     const pathParts = req.path.replace(/\//g, " ").trim().split(' '); // e.g. ['com', 'example', 'A']
     console.log("pathParts: " + pathParts);
     const recordType = pathParts.pop(); // e.g. A

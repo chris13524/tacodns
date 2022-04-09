@@ -10,4 +10,5 @@ docker-compose up --build -d
 
 ```bash
 dig @localhost example.com A
+dig @localhost example.com TXT
 ```

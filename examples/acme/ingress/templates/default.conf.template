@@ -2,8 +2,8 @@ server {
     listen 80;
     resolver 127.0.0.11;
 
-    location ~ ^/(.+/_acme-challenge/TXT/)$ {
-        proxy_pass http://acme-provider/lookup/$1;
+    location ~ ^/.+/_acme-challenge/TXT/$ {
+        proxy_pass http://acme-provider;
     }
 
     location / {

@@ -2,6 +2,6 @@ server {
     listen 80;
     
     location /com/example/A {
-        proxy_pass http://dynamicdns-provider/get;
+        proxy_pass http://dynamic-dns-provider;
     }
 }

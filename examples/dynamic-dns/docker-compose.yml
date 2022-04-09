@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+
+  dynamic-dns-provider:
+    build:
+      context: ../../providers/dynamic-dns
+    ports:
+      - "127.0.0.1:8080:80"
+
+  ingress:
+    build:
+      context: ingress
+
+  tacodns-gateway:
+    build:
+      context: ../../gateway
+    environment:
+      HTTP_ENDPOINT: http://ingress
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"

@@ -5,11 +5,11 @@ services:
     build:
       context: ../../providers/ens
 
-  tacodns-adapter:
+  tacodns-gateway:
     build:
-      context: ../../adapter
+      context: ../../gateway
     environment:
-      HTTP_ENDPOINT: http://ens-provider:3000
+      HTTP_ENDPOINT: http://ens-provider
     ports:
       - "53:53/tcp"
       - "53:53/udp"

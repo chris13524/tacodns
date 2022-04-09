@@ -7,7 +7,7 @@ use rocket::serde::{json::Json, Deserialize};
 use rocket::State as RState;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -17,10 +17,10 @@ struct Challenge {
 }
 
 struct State {
-    challenges: Mutex<HashMap<String, String>>,
+    challenges: RwLock<HashMap<String, String>>,
 }
 
-fn lookup_impl(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>> {
+fn get_impl(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>> {
     let mut path = path
         .iter()
         .map(|os_str| os_str.to_str())
@@ -40,7 +40,7 @@ fn lookup_impl(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>
     trace!("fqdn: {}", fqdn);
     let challenge = state
         .challenges
-        .lock()
+        .read()
         .map_err(|e| anyhow!("expected challenges to lock: {:?}", e))?
         .get(&fqdn)
         .ok_or_else(|| anyhow!("expected challenge under: {}", fqdn))?
@@ -48,9 +48,9 @@ fn lookup_impl(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>
     Ok(Json(vec![challenge]))
 }
 
-#[get("/lookup/<path..>")]
-fn lookup(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>, Status> {
-    lookup_impl(state, path).map_err(|e| {
+#[get("/<path..>")]
+fn get(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>, Status> {
+    get_impl(state, path).map_err(|e| {
         error!("{:?}", e);
         Status::InternalServerError
     })
@@ -58,17 +58,16 @@ fn lookup(state: &RState<State>, path: PathBuf) -> Result<Json<Vec<String>>, Sta
 
 #[post("/present", data = "<challenge>")]
 fn present(state: &RState<State>, challenge: Json<Challenge>) {
-    trace!("presented challenge for fqdn: {}", challenge.fqdn);
-    state
-        .challenges
-        .lock()
-        .unwrap()
-        .insert(challenge.fqdn.clone(), challenge.value.clone());
+    let Challenge { fqdn, value } = challenge.0;
+    trace!("present(challenge.fqdn:{})", fqdn);
+    state.challenges.write().unwrap().insert(fqdn, value);
 }
 
 #[post("/cleanup", data = "<challenge>")]
 fn cleanup(state: &RState<State>, challenge: Json<Challenge>) {
-    state.challenges.lock().unwrap().remove(&challenge.fqdn);
+    let Challenge { fqdn, .. } = challenge.0;
+    trace!("cleanup(challenge.fqdn:{})", fqdn);
+    state.challenges.write().unwrap().remove(&fqdn);
 }
 
 #[launch]
@@ -76,7 +75,7 @@ fn rocket() -> _ {
     env_logger::init();
     rocket::build()
         .manage(State {
-            challenges: Mutex::new(HashMap::new()),
+            challenges: RwLock::new(HashMap::new()),
         })
-        .mount("/", routes![lookup, present, cleanup])
+        .mount("/", routes![get, present, cleanup])
 }

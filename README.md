@@ -12,7 +12,7 @@ TODO
 
 ## How it works
 
-TacoDNS works by implementing an _adapter_ that converts your standard DNS protocol into an easy-to-use HTTP request. For example, the following DNS request:
+TacoDNS works by implementing an _gateway_ that converts your standard DNS protocol into an easy-to-use HTTP request. For example, the following DNS request:
 
 ```bash
 dig example.com A
@@ -30,11 +30,11 @@ A response to this request would look something like:
 ["123.123.123.123"]
 ```
 
-The TacoDNS adapter leverages the existing [TrustDNS](https://github.com/bluejekyll/trust-dns) library which supports dynamic backends and offers the DNS protocol support this project depends on.
+The TacoDNS gateway leverages the existing [TrustDNS](https://github.com/bluejekyll/trust-dns) library which supports dynamic backends and offers the DNS protocol support this project depends on.
 
 ### DNS over HTTPS?
 
-The HTTP request that the TacoDNS adapter converts to is very different from the existing [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) standard. DoH is significantly more awkward to implement against since it uses the wire DNS protocol. While this supports all the features of DNS, it makes implementation of a DNS server much less accessible to developers.
+The HTTP request that the TacoDNS gateway converts to is very different from the existing [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) standard. DoH is significantly more awkward to implement against since it uses the wire DNS protocol. While this supports all the features of DNS, it makes implementation of a DNS server much less accessible to developers.
 
 ### Limitations
 

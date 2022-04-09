@@ -10,7 +10,7 @@ struct DynamicDns {
     record: Mutex<Option<String>>,
 }
 
-#[get("/get")]
+#[get("/")]
 fn get(dynamic_dns: &State<DynamicDns>) -> Result<Json<Vec<String>>, NotFound<String>> {
     match *dynamic_dns.record.lock().unwrap() {
         Some(ref record) => Ok(Json(vec![record.clone()])),
@@ -18,8 +18,8 @@ fn get(dynamic_dns: &State<DynamicDns>) -> Result<Json<Vec<String>>, NotFound<St
     }
 }
 
-#[post("/set", data = "<record>")]
-fn set(dynamic_dns: &State<DynamicDns>, record: String) {
+#[post("/", data = "<record>")]
+fn post(dynamic_dns: &State<DynamicDns>, record: String) {
     *dynamic_dns.record.lock().unwrap() = Some(record);
 }
 
@@ -29,5 +29,5 @@ fn rocket() -> _ {
         .manage(DynamicDns {
             record: Mutex::new(None),
         })
-        .mount("/", routes![get, set])
+        .mount("/", routes![get, post])
 }
