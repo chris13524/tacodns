@@ -22,20 +22,6 @@ pub async fn lookup(
     name: &Name,
     record_type: RecordType,
 ) -> Result<RecordSet> {
-    let endpoint = {
-        let mut endpoint = endpoint;
-
-        for label in name.iter().rev() {
-            let label = std::str::from_utf8(label)?;
-            endpoint = endpoint.join(&format!("{}/", label))?;
-        }
-
-        endpoint = endpoint.join(&format!("{}/", record_type))?;
-
-        endpoint
-    };
-    debug!("endpoint: {}", endpoint);
-
     let ttl = 60;
     let serial = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u32;
     if record_type == RecordType::SOA {
@@ -59,7 +45,8 @@ pub async fn lookup(
         return Ok(record_set);
     }
 
-    let response = reqwest::get(endpoint).await?;
+    let request_url = build_request_url(endpoint, name, record_type)?;
+    let response = reqwest::get(request_url).await?;
     let status = response.status();
     if !status.is_success() {
         return Err(anyhow!(
@@ -77,4 +64,66 @@ pub async fn lookup(
         record_set.insert(Record::from_rdata(name.clone(), ttl, rdata), serial);
     }
     Ok(record_set)
+}
+
+fn build_request_url(mut endpoint: Url, name: &Name, record_type: RecordType) -> Result<Url> {
+    // Path must end with `/` or it will be interpreted as a filename and will be ignored during `.join()` calls
+    if !endpoint.path().ends_with("/") {
+        endpoint.set_path(&format!("{}/", endpoint.path()));
+    }
+
+    for label in name.iter().rev() {
+        let label = std::str::from_utf8(label)?;
+        endpoint = endpoint.join(&format!("{}/", label))?;
+    }
+
+    endpoint = endpoint.join(&format!("{}/", record_type))?;
+
+    Ok(endpoint)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_build_request_url() {
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint/").unwrap(),
+                &Name::from_str("example.com").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/com/example/A/").unwrap()
+        );
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint").unwrap(),
+                &Name::from_str("example.com").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/com/example/A/").unwrap()
+        );
+
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint/path/").unwrap(),
+                &Name::from_str("example.com").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/path/com/example/A/").unwrap()
+        );
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint/path").unwrap(),
+                &Name::from_str("example.com").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/path/com/example/A/").unwrap()
+        );
+    }
 }
