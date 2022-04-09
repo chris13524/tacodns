@@ -1,17 +1,14 @@
 use anyhow::Result;
-use futures_util::future;
 use log::*;
 use reqwest::{IntoUrl, Url};
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::Arc;
-use trust_dns_client::op::{LowerQuery, ResponseCode};
-use trust_dns_client::rr::dnssec::{DnsSecResult, Signer, SupportedAlgorithms};
-use trust_dns_client::rr::rdata::key::KEY;
+use trust_dns_client::op::ResponseCode;
 use trust_dns_client::rr::{LowerName, Name, RecordType};
+use trust_dns_server::authority::LookupOptions;
 use trust_dns_server::authority::{
     AuthLookup, Authority, LookupError, LookupRecords, MessageRequest, UpdateResult, ZoneType,
 };
+use trust_dns_server::server::RequestInfo;
 
 pub struct HttpAuthority {
     origin: LowerName,
@@ -27,9 +24,9 @@ impl HttpAuthority {
     }
 }
 
+#[async_trait::async_trait]
 impl Authority for HttpAuthority {
     type Lookup = AuthLookup;
-    type LookupFuture = future::Ready<Result<Self::Lookup, LookupError>>;
 
     fn zone_type(&self) -> ZoneType {
         ZoneType::Primary
@@ -39,7 +36,7 @@ impl Authority for HttpAuthority {
         false
     }
 
-    fn update(&mut self, _update: &MessageRequest) -> UpdateResult<bool> {
+    async fn update(&self, _update: &MessageRequest) -> UpdateResult<bool> {
         Err(ResponseCode::NotImp)
     }
 
@@ -47,64 +44,59 @@ impl Authority for HttpAuthority {
         &self.origin
     }
 
-    fn lookup(
+    async fn lookup(
         &self,
         name: &LowerName,
-        record_type: RecordType,
-        is_secure: bool,
-        supported_algorithms: SupportedAlgorithms,
-    ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
+        query_type: RecordType,
+        lookup_options: LookupOptions,
+    ) -> Result<Self::Lookup, LookupError> {
         let endpoint = self.endpoint.clone();
         let origin: Name = self.origin().into();
         let name: Name = name.clone().into();
-        Box::pin(async move {
-            crate::http::lookup(endpoint, &origin, &name, record_type)
-                .await
-                .map_err(|e| {
-                    error!("Error in lookup_impl: {}", e);
-                    LookupError::NameExists
-                })
-                .map(|record_set| {
-                    AuthLookup::answers(
-                        LookupRecords::new(is_secure, supported_algorithms, Arc::new(record_set)),
-                        None,
-                    )
-                })
-        })
+        crate::http::lookup(endpoint, &origin, &name, query_type)
+            .await
+            .map_err(|e| {
+                error!("Error in lookup_impl: {}", e);
+                LookupError::NameExists
+            })
+            .map(|record_set| {
+                AuthLookup::answers(
+                    LookupRecords::new(lookup_options, Arc::new(record_set)),
+                    None,
+                )
+            })
     }
 
-    fn search(
+    async fn search(
         &self,
-        query: &LowerQuery,
-        is_secure: bool,
-        supported_algorithms: SupportedAlgorithms,
-    ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
-        Box::pin(self.lookup(
-            query.name(),
-            query.query_type(),
-            is_secure,
-            supported_algorithms,
-        ))
+        request_info: RequestInfo<'_>,
+        lookup_options: LookupOptions,
+    ) -> Result<Self::Lookup, LookupError> {
+        self.lookup(
+            request_info.query.name(),
+            request_info.query.query_type(),
+            lookup_options,
+        )
+        .await
     }
 
-    fn get_nsec_records(
+    async fn get_nsec_records(
         &self,
         _name: &LowerName,
-        _is_secure: bool,
-        _supported_algorithms: SupportedAlgorithms,
-    ) -> Pin<Box<dyn Future<Output = Result<Self::Lookup, LookupError>> + Send>> {
-        Box::pin(future::ok(AuthLookup::default()))
+        _lookup_options: LookupOptions,
+    ) -> Result<Self::Lookup, LookupError> {
+        Ok(AuthLookup::default())
     }
 
-    fn add_update_auth_key(&mut self, _name: Name, _key: KEY) -> DnsSecResult<()> {
-        Err("DNSSEC not implemented.".into())
-    }
+    // fn add_update_auth_key(&mut self, _name: Name, _key: KEY) -> DnsSecResult<()> {
+    //     Err("DNSSEC not implemented.".into())
+    // }
 
-    fn add_zone_signing_key(&mut self, _signer: Signer) -> DnsSecResult<()> {
-        Err("DNSSEC not implemented.".into())
-    }
+    // fn add_zone_signing_key(&mut self, _signer: Signer) -> DnsSecResult<()> {
+    //     Err("DNSSEC not implemented.".into())
+    // }
 
-    fn secure_zone(&mut self) -> DnsSecResult<()> {
-        Err("DNSSEC not implemented.".into())
-    }
+    // fn secure_zone(&mut self) -> DnsSecResult<()> {
+    //     Err("DNSSEC not implemented.".into())
+    // }
 }

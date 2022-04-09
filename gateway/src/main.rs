@@ -4,10 +4,10 @@ mod options;
 
 use anyhow::Result;
 use authority::HttpAuthority;
-use clap::Clap;
+use clap::Parser;
 use log::*;
 use options::Options;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::net::UdpSocket;
@@ -29,10 +29,7 @@ async fn main() -> Result<()> {
 
     let catalog = {
         let mut catalog = Catalog::new();
-        catalog.upsert(
-            authority.origin().clone(),
-            Box::new(Arc::new(RwLock::new(authority))),
-        );
+        catalog.upsert(authority.origin().clone(), Box::new(Arc::new(authority)));
         catalog
     };
 

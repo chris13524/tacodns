@@ -1,7 +1,7 @@
-use clap::Clap;
+use clap::Parser;
 use std::net::SocketAddr;
 
-#[derive(Debug, Clap)]
+#[derive(Parser, Debug)]
 #[clap()]
 pub struct Options {
     /// Socket addresses to listen on.

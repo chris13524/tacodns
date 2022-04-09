@@ -31,8 +31,8 @@ pub async fn lookup(
                 origin.clone(),
                 ttl,
                 RData::SOA(SOA::new(
-                    Name::from_str("ns")?.append_domain(origin),
-                    Name::from_str("hostmaster")?.append_domain(origin),
+                    Name::from_str("ns")?.append_domain(origin)?,
+                    Name::from_str("hostmaster")?.append_domain(origin)?,
                     serial,
                     86400,
                     7200,
