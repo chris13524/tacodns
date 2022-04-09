@@ -27,20 +27,24 @@ jobs:
         working-directory: gateway
         with:
           command: build
+          args: --manifest-path gateway/Cargo.toml
 
       - uses: actions-rs/cargo@v1
         working-directory: gateway
         with:
           command: test
+          args: --manifest-path gateway/Cargo.toml
 
       - uses: actions-rs/cargo@v1
         working-directory: gateway
         with:
           command: fmt
           args: --all -- --check
+          args: --manifest-path gateway/Cargo.toml
 
       - uses: actions-rs/cargo@v1
         working-directory: gateway
         with:
           command: clippy
           args: -- -D warnings
+          args: --manifest-path gateway/Cargo.toml
