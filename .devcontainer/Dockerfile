@@ -40,7 +40,7 @@ RUN cp /etc/zsh/newuser.zshrc.recommended /home/$USERNAME/.zshrc
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    #--default-toolchain nightly \
+    --default-toolchain 1.56 \
     # VSCode Rust plugin dependencies
     --component "rust-src,rust-analysis,rls"
 ENV PATH=$PATH:/home/$USERNAME/.cargo/bin
