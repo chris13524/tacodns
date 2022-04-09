@@ -58,7 +58,7 @@ pub async fn lookup(
     let records = response.json::<Vec<String>>().await?;
     debug!("records: {:?}", records);
 
-    let mut record_set = RecordSet::new(&name, record_type, serial);
+    let mut record_set = RecordSet::new(name, record_type, serial);
     for record in records {
         let rdata = map_record(record_type, record)?;
         record_set.insert(Record::from_rdata(name.clone(), ttl, rdata), serial);
@@ -68,7 +68,7 @@ pub async fn lookup(
 
 fn build_request_url(mut endpoint: Url, name: &Name, record_type: RecordType) -> Result<Url> {
     // Path must end with `/` or it will be interpreted as a filename and will be ignored during `.join()` calls
-    if !endpoint.path().ends_with("/") {
+    if !endpoint.path().ends_with('/') {
         endpoint.set_path(&format!("{}/", endpoint.path()));
     }
 
