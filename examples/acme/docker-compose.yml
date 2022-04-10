@@ -18,7 +18,7 @@ services:
       context: ../../gateway
     environment:
       ENDPOINT: http://ingress
-      ORIGIN: whoami.glowstick.io
+      ORIGIN: whoami.hichris.com
     ports:
       - "159.223.166.42:53:53/tcp"
       - "159.223.166.42:53:53/udp"
@@ -52,6 +52,6 @@ services:
     image: traefik/whoami
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.glowstick.io`)"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.hichris.com`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certResolver=default"
