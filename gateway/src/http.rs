@@ -85,6 +85,7 @@ fn build_request_url(mut endpoint: Url, name: &Name, record_type: RecordType) ->
 #[cfg(test)]
 mod test {
     use super::*;
+    use trust_dns_client::rr::dnssec::SupportedAlgorithms;
 
     #[test]
     fn test_build_request_url() {
@@ -141,5 +142,51 @@ mod test {
             map_record(RecordType::NS, "example.com".to_string()).unwrap(),
             RData::NS(Name::from_str("example.com").unwrap())
         );
+    }
+
+    #[tokio::test]
+    async fn test_lookup() {
+        use httpmock::prelude::*;
+        let server = MockServer::start();
+        let http_mock = server.mock(|when, then| {
+            when.method(GET).path("/path/com/example/A/");
+            then.status(200)
+                .header("content-type", "text/html; charset=UTF-8")
+                .body(r#"["192.168.0.1", "192.168.0.2"]"#);
+        });
+
+        let record_set = lookup(
+            server.url("/path/").parse().unwrap(),
+            &Name::from_str("example.com").unwrap(),
+            &Name::from_str("example.com").unwrap(),
+            RecordType::A,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(record_set.name(), &Name::from_str("example.com").unwrap());
+        assert_eq!(record_set.record_type(), RecordType::A);
+        assert_eq!(record_set.ttl(), 60);
+        let mut records = record_set.records(true, SupportedAlgorithms::all());
+
+        let record = records.next().unwrap();
+        assert_eq!(record.name(), &Name::from_str("example.com").unwrap());
+        assert_eq!(record.record_type(), RecordType::A);
+        assert_eq!(record.ttl(), 60);
+        assert_eq!(
+            record.data(),
+            Some(&RData::A(std::net::Ipv4Addr::new(192, 168, 0, 1)))
+        );
+
+        let record = records.next().unwrap();
+        assert_eq!(record.name(), &Name::from_str("example.com").unwrap());
+        assert_eq!(record.record_type(), RecordType::A);
+        assert_eq!(record.ttl(), 60);
+        assert_eq!(
+            record.data(),
+            Some(&RData::A(std::net::Ipv4Addr::new(192, 168, 0, 2)))
+        );
+
+        http_mock.assert();
     }
 }
