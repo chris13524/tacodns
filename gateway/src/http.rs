@@ -126,4 +126,20 @@ mod test {
             Url::from_str("http://endpoint/path/com/example/A/").unwrap()
         );
     }
+
+    #[test]
+    fn test_map_record() {
+        assert_eq!(
+            map_record(RecordType::A, "192.168.0.1".to_string()).unwrap(),
+            RData::A(std::net::Ipv4Addr::new(192, 168, 0, 1))
+        );
+        assert_eq!(
+            map_record(RecordType::TXT, "abc".to_string()).unwrap(),
+            RData::TXT(TXT::new(vec!["abc".to_string()]))
+        );
+        assert_eq!(
+            map_record(RecordType::NS, "example.com".to_string()).unwrap(),
+            RData::NS(Name::from_str("example.com").unwrap())
+        );
+    }
 }
