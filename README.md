@@ -38,8 +38,11 @@ The HTTP request that the TacoDNS gateway converts to is very different from the
 
 ### Limitations
 
-TacoDNS only supports a subset of DNS functionality and does not support:
+TacoDNS intentionally does not support:
 - zone transfers
+
+TacoDNS could support in the future:
+- multiple origins
 
 ## Use cases
 

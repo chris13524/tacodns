@@ -85,6 +85,7 @@ fn build_request_url(mut endpoint: Url, name: &Name, record_type: RecordType) ->
 #[cfg(test)]
 mod test {
     use super::*;
+    use httpmock::prelude::*;
     use trust_dns_client::rr::dnssec::SupportedAlgorithms;
 
     #[test]
@@ -126,6 +127,25 @@ mod test {
             .unwrap(),
             Url::from_str("http://endpoint/path/com/example/A/").unwrap()
         );
+
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint/path/").unwrap(),
+                &Name::from_str("com").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/path/com/A/").unwrap()
+        );
+        assert_eq!(
+            build_request_url(
+                Url::from_str("http://endpoint/path/").unwrap(),
+                &Name::from_str("").unwrap(),
+                RecordType::A
+            )
+            .unwrap(),
+            Url::from_str("http://endpoint/path/A/").unwrap()
+        );
     }
 
     #[test]
@@ -145,13 +165,12 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_lookup() {
-        use httpmock::prelude::*;
+    async fn test_lookup_a() {
         let server = MockServer::start();
         let http_mock = server.mock(|when, then| {
             when.method(GET).path("/path/com/example/A/");
             then.status(200)
-                .header("content-type", "text/html; charset=UTF-8")
+                .header("content-type", "text/json; charset=UTF-8")
                 .body(r#"["192.168.0.1", "192.168.0.2"]"#);
         });
 
@@ -188,5 +207,40 @@ mod test {
         );
 
         http_mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_lookup_soa() {
+        let record_set = lookup(
+            "http://null/path/".parse().unwrap(),
+            &Name::from_str("example.com").unwrap(),
+            &Name::from_str("example.com").unwrap(),
+            RecordType::SOA,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(record_set.name(), &Name::from_str("example.com").unwrap());
+        assert_eq!(record_set.record_type(), RecordType::SOA);
+        assert_eq!(record_set.ttl(), 60);
+        let mut records = record_set.records(true, SupportedAlgorithms::all());
+
+        let record = records.next().unwrap();
+        assert_eq!(record.name(), &Name::from_str("example.com").unwrap());
+        assert_eq!(record.record_type(), RecordType::SOA);
+        assert_eq!(record.ttl(), 60);
+        assert!(if let Some(RData::SOA(soa)) = record.data() {
+            soa == &SOA::new(
+                Name::from_str("ns.example.com").unwrap(),
+                Name::from_str("hostmaster.example.com").unwrap(),
+                soa.serial(),
+                86400,
+                7200,
+                3600000,
+                15,
+            )
+        } else {
+            false
+        });
     }
 }
